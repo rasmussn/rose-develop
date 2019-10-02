@@ -1,28 +1,29 @@
-connect sqlite3://./combined.db
+create sqlite3://./combined.db
 
+@ success
 ls :: t01
-  @ success
 {
-  /usr/bin/ls -la
+  ls -la /
 }
 
+@ success
 ls :: t02
-  @ success
 {
-  /usr/bin/ls -l --author *.o
+  ls -l --author /
 }
 
 
+@ success
 tail :: t03
-  @ success
 {
-  /usr/bin/tail Makefile
+  tail Makefile
 }
 
+
+@ success
 tail :: t04
-  @ success
 {
-  /usr/bin/tail -10 Makefile
+  tail -10 Makefile
 }
 
 
@@ -30,4 +31,4 @@ ls :: run 1
 
 run 2
 
-echo ok.
+! echo ok.

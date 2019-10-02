@@ -364,3 +364,17 @@ string EStateSet::toString(VariableIdMapping* variableIdMapping) const {
   ss<<"}";
   return ss.str();
 }
+
+bool EState::isApproximatedBy(const EState* other) const {
+  ROSE_ASSERT(label()==other->label()); // ensure same location
+  ROSE_ASSERT(constraints()==other->constraints()); // pointer equality
+  if(callString!=other->callString) {
+    return false;
+  }
+  // it only remains to check the pstate
+  return pstate()->isApproximatedBy(*const_cast<PState*>(other->pstate())) && (io.isBot()||(io==other->io));
+}
+
+std::string EState::labelString() const {
+  return "L"+label().toString();
+}

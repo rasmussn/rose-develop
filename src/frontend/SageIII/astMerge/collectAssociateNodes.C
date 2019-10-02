@@ -326,9 +326,6 @@ addAssociatedNodes( SgType* type, set<SgNode*> & nodeList, bool markMemberNodesD
 
           case V_SgQualifiedNameType:
        // case V_SgTemplateType:
-#ifndef ROSE_USE_NEW_EDG_INTERFACE 
-          case V_SgPartialFunctionType:
-#endif
           case V_SgPartialFunctionModifierType:
           // case V_SgUnknownMemberFunctionType:
              {
@@ -396,10 +393,8 @@ addAssociatedNodes( SgType* type, set<SgNode*> & nodeList, bool markMemberNodesD
           case V_SgTypeVoid:
           case V_SgTypeWchar:
           case V_SgTypeCAFTeam:
-#ifdef ROSE_USE_NEW_EDG_INTERFACE
        // Allow this as an IR node into the AST.
           case V_SgPartialFunctionType:
-#endif
        // TV (04/16/2018): Ignore non-real type for now
           case V_SgNonrealType:
           case V_SgAutoType:
@@ -2170,8 +2165,10 @@ addAssociatedNodes ( SgNode* node, set<SgNode*> & nodeList, bool markMemberNodes
        // DXN (09/14/2011):
           case V_SgNullifyStatement:
 
-       // Rasmussen (11/12/2018): Added support for Jovial COMPOOL module
+       // Rasmussen (08/02/2019): Added support for Jovial
           case V_SgJovialCompoolStatement:
+          case V_SgJovialDirectiveStatement:
+          case V_SgJovialDefineDeclaration:
 
        // Rasmussen (10/23/2018): Added support for Jovial for statement with then construct
           case V_SgJovialForThenStatement:
@@ -2415,13 +2412,20 @@ addAssociatedNodes ( SgNode* node, set<SgNode*> & nodeList, bool markMemberNodes
              }
 
        // Rasmussen 6/14/2017: Ignore SgUntyped nodes for now.  Untyped nodes are currently used in
-       // parsing Fortran as a temporary conversion mechanism to store node information before complete
+       // parsing Jovial as a temporary conversion mechanism to store node information before complete
        // type resolution has been done.
           case V_SgUntypedProgramHeaderDeclaration:
+          case V_SgUntypedDeclarationStatementList:
+          case V_SgUntypedFunctionDeclarationList:
           case V_SgUntypedExprListExpression:
           case V_SgUntypedNullExpression:
+          case V_SgUntypedOtherExpression:
+          case V_SgUntypedScope:
+          case V_SgUntypedStatementList:
+          case V_SgUntypedStructureDefinition:
           case V_SgUntypedSubscriptExpression:
           case V_SgUntypedValueExpression:
+          case V_SgUntypedVariableDeclaration:
              {
                break;
              }

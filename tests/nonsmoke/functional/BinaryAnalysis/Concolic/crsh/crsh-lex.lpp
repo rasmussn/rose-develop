@@ -7,12 +7,15 @@ extern "C" int yywrap(void) { return 1; }
 %}
 
 %%
-"connect"                      return CONNECT;
-"export"                       return EXPORT;
-"run"                          return RUN;
-"echo"                         return ECHO;
+"create"                       return DBCREATE;
+"connect"                      return DBCONNECT;
+"close"                        return DBCLOSE;
 "exit"                         return EXIT;
+"export"                       return EXPORT;
+"MONITOR"                      return MONITOR;
+"run"                          return RUN;
 "::"                           return QUAL;
+!                              return SHELL;
 
 \"(\\.|[^"\\])*\"              {
                                  yylval.m_str = strdup(yytext);
@@ -25,7 +28,7 @@ extern "C" int yywrap(void) { return 1; }
                                }
 "{"                            return LBLK;
 "}"                            return RBLK;
-"@"                            return EXPECT;
+"@"                            return NOTE;
 "$"                            return VAR;
 "="                            return EQUAL;
 [0-9]+                         {
@@ -37,7 +40,7 @@ extern "C" int yywrap(void) { return 1; }
                                  return STRING;
                                }
 
-\n                             /* ignore end of line */;
+\n                             /* return NL; */
 [ \t]+                         /* ignore whitespace */;
 "#".*                          /* ignore line comment */;
 %%

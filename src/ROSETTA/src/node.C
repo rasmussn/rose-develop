@@ -236,9 +236,11 @@ Grammar::setUpNodes ()
   // DQ (9/29/2017): Added new IR node for untyped representation of package declarations (Ada).
   // Rasmussen (02/22/2019): Added SgUntypedDirectiveDeclaration node for compiler directives
   // Rasmussen (03/04/2019): Added SgUntypedEnumDeclaration node
+  // Rasmussen (09/30/2019): Added SgUntypedTypedefDeclaration
      NEW_TERMINAL_MACRO (UntypedPackageDeclaration,          "UntypedPackageDeclaration",          "TEMP_UntypedPackageDeclaration" );
      NEW_TERMINAL_MACRO (UntypedTaskDeclaration,             "UntypedTaskDeclaration",             "TEMP_UntypedTaskDeclaration" );
      NEW_TERMINAL_MACRO (UntypedStructureDeclaration,        "UntypedStructureDeclaration",        "TEMP_UntypedStructureDeclaration" );
+     NEW_TERMINAL_MACRO (UntypedTypedefDeclaration,          "UntypedTypedefDeclaration",          "TEMP_UntypedTypedefDeclaration" );
      NEW_TERMINAL_MACRO (UntypedExceptionDeclaration,        "UntypedExceptionDeclaration",        "TEMP_UntypedExceptionDeclaration" );
      NEW_TERMINAL_MACRO (UntypedExceptionHandlerDeclaration, "UntypedExceptionHandlerDeclaration", "TEMP_UntypedExceptionHandlerDeclaration" );
      NEW_TERMINAL_MACRO (UntypedUnitDeclaration,             "UntypedUnitDeclaration",             "TEMP_UntypedUnitDeclaration" );
@@ -253,13 +255,15 @@ Grammar::setUpNodes ()
   // Rasmussen (1/16/2018): Added UntypedNullDeclaration
   // Rasmussen (8/06/2018): Added SgUntypedInitializedNameListDeclaration
   // Rasmussen (02/22/2019): Added SgUntypedDirectiveDeclaration node for compiler directives
+  // Rasmussen (09/30/2019): Added SgUntypedTypedefDeclaration for Jovial type declarations of primitive types
      NEW_NONTERMINAL_MACRO (UntypedDeclarationStatement,
          UntypedNullDeclaration      | UntypedNameListDeclaration  | UntypedUseStatement                |
          UntypedImplicitDeclaration  | UntypedVariableDeclaration  | UntypedFunctionDeclaration         |
          UntypedModuleDeclaration    | UntypedSubmoduleDeclaration | UntypedBlockDataDeclaration        |
          UntypedPackageDeclaration   | UntypedStructureDeclaration | UntypedExceptionHandlerDeclaration |
          UntypedExceptionDeclaration | UntypedTaskDeclaration      | UntypedUnitDeclaration             |
-         UntypedDirectiveDeclaration | UntypedEnumDeclaration      | UntypedInitializedNameListDeclaration,
+         UntypedDirectiveDeclaration | UntypedEnumDeclaration      | UntypedTypedefDeclaration          |
+         UntypedInitializedNameListDeclaration,
          "UntypedDeclarationStatement", "UntypedDeclarationStatementTag", true);
 
      NEW_TERMINAL_MACRO (UntypedAssignmentStatement,   "UntypedAssignmentStatement",   "TEMP_UntypedAssignmentStatement" );
@@ -297,8 +301,12 @@ Grammar::setUpNodes ()
          UntypedForAllStatement,
          "UntypedStatement", "UntypedStatementTag", false);
 
+  // Rasmussen (06/13/2019): Added UntypedTableType for Jovial tables.
      NEW_TERMINAL_MACRO (UntypedArrayType, "UntypedArrayType", "TEMP_UntypedArrayType" );
-     NEW_NONTERMINAL_MACRO (UntypedType, UntypedArrayType, "UntypedType", "UntypedTypeTag", false);
+     NEW_TERMINAL_MACRO (UntypedTableType, "UntypedTableType", "TEMP_UntypedTableType" );
+
+     NEW_NONTERMINAL_MACRO (UntypedType, UntypedArrayType | UntypedTableType,
+                            "UntypedType", "UntypedTypeTag", false);
 
      NEW_TERMINAL_MACRO (UntypedName,             "UntypedName",             "TEMP_UntypedName" );
      NEW_TERMINAL_MACRO (UntypedNameList,         "UntypedNameList",         "TEMP_UntypedNameList" );
@@ -932,7 +940,7 @@ Grammar::setUpNodes ()
      UntypedVariableDeclaration.setDataPrototype     ( "SgUntypedType*", "type", "= NULL",
                      CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, NO_DELETE);
      UntypedVariableDeclaration.setDataPrototype     ( "SgUntypedExprListExpression*", "modifiers", "",
-                  NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, DEF_TRAVERSAL, NO_DELETE);
+                  NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, NO_DELETE);
      UntypedVariableDeclaration.setDataPrototype     ( "SgUntypedInitializedNameList*", "variables", "",
                   NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, DEF_TRAVERSAL, NO_DELETE);
 
@@ -988,20 +996,29 @@ Grammar::setUpNodes ()
                   CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, NO_DELETE);
      UntypedStructureDefinition.setDataPrototype         ( "SgUntypedExprListExpression*", "modifiers", "= NULL",
                   CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, NO_DELETE);
+     UntypedStructureDefinition.setDataPrototype         ( "SgUntypedType*", "base_type", "= NULL",
+                  CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, NO_TRAVERSAL, NO_DELETE);
      UntypedStructureDefinition.setDataPrototype         ( "SgUntypedScope*", "scope", "= NULL",
                   CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, DEF_TRAVERSAL, NO_DELETE);
 
      UntypedStructureDeclaration.setFunctionPrototype    ( "HEADER_UNTYPED_STRUCTURE_DECLARATION", "../Grammar/LocatedNode.code");
+     UntypedStructureDeclaration.setDataPrototype         ( "int", "statement_enum", "= 0",
+                  CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, NO_TRAVERSAL, NO_DELETE);
      UntypedStructureDeclaration.setDataPrototype        ( "std::string", "name", "= \"\"",
                   CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, NO_DELETE);
      UntypedStructureDeclaration.setDataPrototype        ( "SgUntypedExprListExpression*", "modifiers", "= NULL",
                NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, NO_DELETE);
      UntypedStructureDeclaration.setDataPrototype        ( "SgUntypedExprListExpression*", "dim_info", "= NULL",
                NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, DEF_DELETE);
-     UntypedStructureDeclaration.setDataPrototype        ( "int", "rank" , "= 0",
-               NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, NO_TRAVERSAL, NO_DELETE);
      UntypedStructureDeclaration.setDataPrototype        ( "SgUntypedStructureDefinition*", "definition", "= NULL",
                NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, DEF_TRAVERSAL, NO_DELETE);
+
+  // Rasmussen (09/30/2019): Added SgUntypedTypedefDeclaration node
+     UntypedTypedefDeclaration.setFunctionPrototype ( "HEADER_UNTYPED_TYPEDEF_DECLARATION", "../Grammar/LocatedNode.code");
+     UntypedTypedefDeclaration.setDataPrototype     ( "std::string", "name", "= \"\"",
+                     CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, NO_DELETE);
+     UntypedTypedefDeclaration.setDataPrototype     ( "SgUntypedType*", "base_type", "= NULL",
+                     CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL, NO_DELETE);
 
   // DQ (9/29/2017): Adding task support.
      UntypedTaskDeclaration.setFunctionPrototype      ( "HEADER_UNTYPED_TASK_DECLARATION", "../Grammar/LocatedNode.code");
@@ -1164,13 +1181,23 @@ Grammar::setUpNodes ()
   //              NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, NO_TRAVERSAL, NO_DELETE);
 
      UntypedArrayType.setFunctionPrototype ( "HEADER_UNTYPED_ARRAY_TYPE", "../Grammar/LocatedNode.code");
+     UntypedTableType.setFunctionPrototype ( "HEADER_UNTYPED_TABLE_TYPE", "../Grammar/LocatedNode.code");
 
-  // DQ (12/9/2015): Added array length expression.
   // Rasmussen (12/20/2017): Making SgUntypedArrayType better able to carry information to SgArrayType (removed array_length_expression)
      UntypedArrayType.setDataPrototype ("SgUntypedExprListExpression*", "dim_info" , "= NULL",
                                         NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, DEF_TRAVERSAL, DEF_DELETE);
      UntypedArrayType.setDataPrototype ("int", "rank" , "= 0",
                                         NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, NO_TRAVERSAL, NO_DELETE);
+
+  // Rasmussen (06/13/2019): Added UntypedTableType for Jovial tables.
+     UntypedTableType.setDataPrototype ("SgUntypedType*", "base_type", "= NULL",
+                                        CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL,  NO_DELETE);
+     UntypedTableType.setDataPrototype ("SgUntypedExprListExpression*", "dim_info" , "= NULL",
+                                        CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS, DEF_TRAVERSAL, DEF_DELETE);
+     UntypedTableType.setDataPrototype ("int", "rank" , "= 0",
+                                        CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL,  NO_DELETE);
+     UntypedTableType.setDataPrototype ("SgUntypedType::type_enum", "table_type_enum_id", "= SgUntypedType::e_unknown",
+                                     NO_CONSTRUCTOR_PARAMETER, BUILD_ACCESS_FUNCTIONS,  NO_TRAVERSAL,  NO_DELETE);
 
   // DQ (10/6/2008): Moved to SgLocatedNodeSupport.
      RenamePair.setFunctionPrototype ( "HEADER_RENAME_PAIR", "../Grammar/LocatedNode.code");
@@ -1691,6 +1718,7 @@ Grammar::setUpNodes ()
 
      UntypedPackageDeclaration.setFunctionSource          ( "SOURCE_UNTYPED_PACKAGE_DECLARATION", "../Grammar/LocatedNode.code");
      UntypedStructureDeclaration.setFunctionSource        ( "SOURCE_UNTYPED_STRUCTURE_DECLARATION", "../Grammar/LocatedNode.code");
+     UntypedTypedefDeclaration.setFunctionSource          ( "SOURCE_UNTYPED_TYPEDEF_DECLARATION", "../Grammar/LocatedNode.code");
      UntypedExceptionDeclaration.setFunctionSource        ( "SOURCE_UNTYPED_EXCEPTION_DECLARATION", "../Grammar/LocatedNode.code");
      UntypedExceptionHandlerDeclaration.setFunctionSource ( "SOURCE_UNTYPED_EXCEPTION_HANDLER_DECLARATION", "../Grammar/LocatedNode.code");
      UntypedTaskDeclaration.setFunctionSource             ( "SOURCE_UNTYPED_TASK_DECLARATION", "../Grammar/LocatedNode.code");
@@ -1728,6 +1756,7 @@ Grammar::setUpNodes ()
 
      UntypedType.setFunctionSource      ( "SOURCE_UNTYPED_TYPE", "../Grammar/LocatedNode.code");
      UntypedArrayType.setFunctionSource ( "SOURCE_UNTYPED_ARRAY_TYPE", "../Grammar/LocatedNode.code");
+     UntypedTableType.setFunctionSource ( "SOURCE_UNTYPED_TABLE_TYPE", "../Grammar/LocatedNode.code");
 
   // DQ (10/6/2008): Moved from SgSupport.
      RenamePair.setFunctionSource ( "SOURCE_RENAME_PAIR", "../Grammar/LocatedNode.code");

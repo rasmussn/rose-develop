@@ -385,24 +385,6 @@ Unparse_ExprStmt::unparseLambdaExpression(SgExpression* expr, SgUnparse_Info& in
         }
      curprint("] ");
 
-  // DQ (1/24/2016): Before the function is output, we want to support an experimental "__device__" keyword.
-  // Find the associated function where this SgLambdaExp is a function argument.  Note that it might be 
-  // better to support this as a transformation instead of directly in the unparser.  But then I would have
-  // to explicitly mark the lambdaExp.
-#if 1
-     bool lambaFunctionMarkedAsDevice = lambdaExp->get_is_device();
-     if (lambaFunctionMarkedAsDevice == true)
-        {
-#if 0
-          printf ("Use the __device__ keyword in the unparsed code \n");
-#endif
-          curprint(" __device__ ");
-#if 0
-          printf ("Exiting as a test! \n");
-          ROSE_ASSERT(false);
-#endif
-        }
-#endif
      SgFunctionDeclaration* lambdaFunction =  lambdaExp->get_lambda_function();
      ROSE_ASSERT(lambdaFunction != NULL);
      ROSE_ASSERT(lambdaFunction->get_firstNondefiningDeclaration() != NULL);
@@ -413,6 +395,16 @@ Unparse_ExprStmt::unparseLambdaExpression(SgExpression* expr, SgUnparse_Info& in
      printf ("lambdaFunction->get_firstNondefiningDeclaration() = %p = %s \n",lambdaFunction->get_firstNondefiningDeclaration(),lambdaFunction->get_firstNondefiningDeclaration()->class_name().c_str());
      printf ("lambdaFunction->get_definingDeclaration()         = %p = %s \n",lambdaFunction->get_definingDeclaration(),lambdaFunction->get_definingDeclaration()->class_name().c_str());
 #endif
+
+     if (lambdaFunction->get_functionModifier().isCudaHost()) {
+       curprint("__host__ ");
+     }
+     if (lambdaFunction->get_functionModifier().isCudaKernel()) {
+       curprint("__global__ ");
+     }
+     if (lambdaFunction->get_functionModifier().isCudaDevice()) {
+       curprint("__device__ ");
+     }
 
      if (lambdaExp->get_has_parameter_decl() == true)
         {
@@ -446,7 +438,7 @@ Unparse_ExprStmt::unparseLambdaExpression(SgExpression* expr, SgUnparse_Info& in
 
      if (lambdaExp->get_explicit_return_type() == true)
         {
-#if 0
+#if 1
           curprint(" -> ");
 #else
        // DQ (7/5/2018): Debugging test2018_120.C.
@@ -958,9 +950,18 @@ void SgTemplateArgument::outputTemplateArgument(bool & skip_unparsing, bool & st
   if (this->get_argumentType() == SgTemplateArgument::type_argument) {
     SgClassType * xtype = isSgClassType(this->get_type());
     if (xtype != NULL) {
+#if DEBUG_OUTPUT_TEMPLATE_ARGUMENT
+      printf ("   - xtype = %p (%s) = %s \n", xtype, xtype->class_name().c_str(), xtype->unparseToString().c_str());
+#endif
       SgDeclarationStatement * xdecl = xtype->get_declaration();
       ROSE_ASSERT(xdecl != NULL);
+#if DEBUG_OUTPUT_TEMPLATE_ARGUMENT
+      printf ("   - xdecl = %p (%s)\n", xdecl, xdecl->class_name().c_str());
+#endif
       SgNode * pnode = xdecl->get_parent();
+#if DEBUG_OUTPUT_TEMPLATE_ARGUMENT
+      printf ("   - pnode = %p (%s)\n", pnode, pnode ? pnode->class_name().c_str() : "");
+#endif
       SgLambdaExp * lambda_exp = isSgLambdaExp(pnode);
       if (lambda_exp != NULL) {
         isAssociatedWithLambdaExp = true;
@@ -1061,10 +1062,19 @@ Unparse_ExprStmt::unparseTemplateArgumentList(const SgTemplateArgumentPtrList & 
           SgTemplateArgument * tplarg = *copy_iter;
           ROSE_ASSERT(tplarg != NULL);
 
+#if DEBUG_TEMPLATE_ARGUMENT_LIST
+          printf (" - tplarg = %s\n", tplarg->unparseToString().c_str());
+#endif
+
        // DQ (2/11/2019): Use simpler version of code now that logic has been refactored.
           bool skipTemplateArgument = false;
           bool stopTemplateArgument = false;
           tplarg->outputTemplateArgument(skipTemplateArgument, stopTemplateArgument);
+
+#if DEBUG_TEMPLATE_ARGUMENT_LIST
+          printf (" - skipTemplateArgument = %d\n", skipTemplateArgument);
+          printf (" - stopTemplateArgument = %d\n", stopTemplateArgument);
+#endif
 
           if (stopTemplateArgument) {
             break;
@@ -2510,6 +2520,11 @@ Unparse_ExprStmt::unparseVarRef(SgExpression* expr, SgUnparse_Info& info)
 void
 Unparse_ExprStmt::unparseCompoundLiteral (SgExpression* expr, SgUnparse_Info& info)
    {
+#if 0
+     printf ("In unparseCompoundLiteral() \n");
+     curprint ("/* In unparseCompoundLiteral() */ \n");
+#endif
+
      SgCompoundLiteralExp* compoundLiteral = isSgCompoundLiteralExp(expr);
      ROSE_ASSERT(compoundLiteral != NULL);
 
@@ -2518,6 +2533,12 @@ Unparse_ExprStmt::unparseCompoundLiteral (SgExpression* expr, SgUnparse_Info& in
 
      SgInitializedName* initializedName = variableSymbol->get_declaration();
      ROSE_ASSERT(initializedName != NULL);
+
+     if (initializedName->get_initptr() == NULL)
+        {
+          printf ("Error: In unparseCompoundLiteral(): initializedName->get_initptr() == NULL: initializedName = %p name = %s \n",initializedName,initializedName->get_name().str());
+        }
+
      ROSE_ASSERT(initializedName->get_initptr() != NULL);
 
      SgAggregateInitializer* aggregateInitializer = isSgAggregateInitializer(initializedName->get_initptr());
@@ -3214,10 +3235,12 @@ Unparse_ExprStmt::unparseMFuncRefSupport ( SgExpression* expr, SgUnparse_Info& i
 #endif
      if (nodeReferenceToFunction != NULL)
         {
-#if 0
+#if MFuncRefSupport_DEBUG
           printf ("rrrrrrrrrrrr In unparseMFuncRefSupport() output type generated name: nodeReferenceToFunction = %p = %s SgNode::get_globalTypeNameMap().size() = %" PRIuPTR " \n",
                nodeReferenceToFunction,nodeReferenceToFunction->class_name().c_str(),SgNode::get_globalTypeNameMap().size());
 #endif
+#if 0
+       // DQ (7/9/2019): This will cause the class specifier to be output.
           std::map<SgNode*,std::string>::iterator i = SgNode::get_globalTypeNameMap().find(nodeReferenceToFunction);
           if (i != SgNode::get_globalTypeNameMap().end())
              {
@@ -3225,14 +3248,18 @@ Unparse_ExprStmt::unparseMFuncRefSupport ( SgExpression* expr, SgUnparse_Info& i
                usingGeneratedNameQualifiedFunctionNameString = true;
 
                functionNameString = i->second.c_str();
-#if 0
+#if MFuncRefSupport_DEBUG
                printf ("ssssssssssssssss Found type name in SgNode::get_globalTypeNameMap() typeNameString = %s for nodeReferenceToType = %p = %s \n",
                     functionNameString.c_str(),nodeReferenceToFunction,nodeReferenceToFunction->class_name().c_str());
 #endif
              }
-            else
+          else
+#else
+         // DQ (7/9/2019): Debugging test2019_493.C.
+         // printf ("In unparseMFuncRefSupport(): Don't use the globalTypeNameMap since it uses the class specifier! \n");
+#endif
              {
-#if 0
+#if MFuncRefSupport_DEBUG
                printf ("Could not find saved name qualified function name in globalTypeNameMap: using key: nodeReferenceToFunction = %p = %s \n",nodeReferenceToFunction,nodeReferenceToFunction->class_name().c_str());
 #endif
 #if 0
@@ -3272,14 +3299,14 @@ Unparse_ExprStmt::unparseMFuncRefSupport ( SgExpression* expr, SgUnparse_Info& i
                     usingGeneratedNameQualifiedFunctionNameString = true;
 
                     functionNameString = j->second.c_str();
-#if 0
+#if MFuncRefSupport_DEBUG
                     printf ("uuuuuuuuuuuuuuuuuuuu Found type name in SgNode::get_globalTypeNameMap() typeNameString = %s for nodeReferenceToType = %p = %s \n",
                          functionNameString.c_str(),mfunc_ref,mfunc_ref->class_name().c_str());
 #endif
                   }
                  else
                   {
-#if 0
+#if MFuncRefSupport_DEBUG
                     printf ("Could not find saved name qualified function name in globalTypeNameMap: using key: mfunc_ref = %p = %s \n",mfunc_ref,mfunc_ref->class_name().c_str());
 #endif
                   }
@@ -4376,23 +4403,13 @@ Unparse_ExprStmt::unparseComplexVal(SgExpression* expr, SgUnparse_Info& info)
      } else if (complex_val->get_real_value() == NULL) { // Pure imaginary
        curprint ("(");
        unparseValue(complex_val->get_imaginary_value(), info);
-#ifdef ROSE_USE_NEW_EDG_INTERFACE 
-    // curprint (" * __I__)");
        curprint (" * 1.0i)");
-#else
-       curprint (" * _Complex_I)");
-#endif
      } else { // Complex number
        curprint ("(");
        unparseValue(complex_val->get_real_value(), info);
        curprint (" + ");
        unparseValue(complex_val->get_imaginary_value(), info);
-#ifdef ROSE_USE_NEW_EDG_INTERFACE 
-    // curprint (" * __I__)");
        curprint (" * 1.0i)");
-#else
-       curprint (" * _Complex_I)");
-#endif
      }
    }
 
@@ -7185,7 +7202,7 @@ Unparse_ExprStmt::unparseAggrInit(SgExpression* expr, SgUnparse_Info& info)
        // DQ (3/12/2018): Rewrite this so that we can output the calue of "shared".
        // if (sharesSameStatement(aggr_init,aggr_init->get_type()) == true)
           bool shares = (sharesSameStatement(aggr_init,aggr_init->get_type()) == true);
-#if 1
+#if 0
           printf ("In unparseAggrInit(): shares = %s \n",shares ? "true" : "false");
 #endif
           if (shares == true)
@@ -7719,6 +7736,12 @@ Unparse_ExprStmt::unparseConInit(SgExpression* expr, SgUnparse_Info& info)
      SgUnparse_Info newinfo(info);
      bool outputParenthisis = false;
 
+  // DQ (7/9/2019): Supress the class specifier.
+  // newinfo.set_SkipClassSpecifier();
+
+#if 0
+     printf ("In unparseConInit(): set SkipClassSpecifier() \n");
+#endif
 #if DEBUG_CONSTRUCTOR_INITIALIZER
      printf ("In unparseConInit(): con_init->get_need_name()                   = %s \n",(con_init->get_need_name() == true) ? "true" : "false");
      printf ("In unparseConInit(): con_init->get_is_explicit_cast()            = %s \n",(con_init->get_is_explicit_cast() == true) ? "true" : "false");

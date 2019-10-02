@@ -20,7 +20,8 @@ SgUntypedType* buildType (SgUntypedType::type_enum type_enum = SgUntypedType::e_
 SgUntypedArrayType* buildArrayType (SgUntypedType::type_enum type_enum, SgUntypedExprListExpression* shape, int rank);
 
 //! Build an untyped Jovial table type from a base type (currently base type can only be an intrinsic type)
-SgUntypedArrayType* buildJovialTableType (std::string name, SgUntypedType* base_type, SgUntypedExprListExpression* shape);
+SgUntypedTableType* buildJovialTableType (std::string name, SgUntypedType* base_type,
+                                          SgUntypedExprListExpression* shape, bool is_anonymous=false);
 
 //! Build an untyped initialized name for the given name and type.  The initializer may be a nullptr.
 SgUntypedInitializedName* buildInitializedName(const std::string & name, SgUntypedType* type, SgUntypedExpression* initializer = NULL);
@@ -37,13 +38,26 @@ SgUntypedVariableDeclaration* buildVariableDeclaration(const std::string & name,
 //! Source position for the initializer and modifier lists and table description should be set after construction.
 SgUntypedStructureDefinition* buildStructureDefinition();
 
+//! Build an untyped StructureDefinition. This version has a type name and body/scope (default is NULL).
+//! If the has_body flag is true and the scope is NULL, a scope will be created.
+//! Source position for the initializer and table description should be set after construction.
+SgUntypedStructureDefinition* buildStructureDefinition(const std::string type_name, bool has_body=false, SgUntypedScope* scope=NULL);
+
 //! Build an untyped JovialTableDescription. This version has a body and thus a scope.
 //! Source position for the initializer and modifier lists and table description should be set after construction.
 SgUntypedStructureDefinition* buildJovialTableDescription();
 
-//! Build an untyped JovialTableDescription. This version has a type name and no body.
+//! Build an untyped JovialTableDescription. This version has a type name and body/scope (default is NULL).
+//! If the has_body flag is true and the scope is NULL, a scope will be created.
 //! Source position for the initializer and table description should be set after construction.
-SgUntypedStructureDefinition* buildJovialTableDescription(std::string type_name);
+SgUntypedStructureDefinition* buildJovialTableDescription(std::string table_type_name, bool has_body=false, SgUntypedScope* scope=NULL);
+
+//! Build an untyped JovialTableDeclaration with associated JovialTableDescription. This version has a body and thus a scope.
+//! Source position for the initializer and modifier lists and table description should be set after construction.
+SgUntypedStructureDeclaration* buildJovialTableDeclaration(std::string type_name);
+
+//! Build an untyped directive declaration statement (SgUntypedDirectiveDeclaration)
+SgUntypedDirectiveDeclaration* buildDirectiveDeclaration(std::string directive_string);
 
 //! Build a null expression, set file info as the default one
 ROSE_DLL_API SgUntypedNullExpression* buildUntypedNullExpression();
